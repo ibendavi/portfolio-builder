@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧩 Diversification Portfolio Builder | MBA 6223</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f5f5; color: #333;
+        }
+        .header {
+            background: #0d47a1; color: white;
+            padding: 14px 24px; text-align: center;
+        }
+        .header h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 1px; }
+        .header p { font-size: 0.82rem; opacity: 0.92; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px 16px; }
+
+        /* Controls */
+        .controls { margin-bottom: 18px; }
+        .add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .add-row input {
+            flex: 1; padding: 11px 14px; font-size: 1.05rem;
+            border: 2px solid #ddd; border-radius: 8px; outline: none;
+            text-transform: uppercase;
+        }
+        .add-row input:focus { border-color: #0d47a1; }
+        .btn {
+            padding: 10px 20px; font-size: 0.95rem; font-weight: 600;
+            background: #0d47a1; color: white; border: none; border-radius: 8px;
+            cursor: pointer; white-space: nowrap;
+        }
+        .btn:hover { background: #0a3680; }
+        .btn.secondary { background: #555; }
+        .btn.secondary:hover { background: #333; }
+        .btn:disabled { background: #bbb; cursor: not-allowed; }
+
+        .scenarios { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .scenarios .btn { font-size: 0.82rem; padding: 7px 14px; }
+
+        /* Portfolio list */
+        .portfolio-list {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+            min-height: 32px;
+        }
+        .chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #fdf0f0; border: 1px solid #e8c4c4; border-radius: 20px;
+            padding: 4px 10px; font-size: 0.82rem; font-weight: 600; color: #0d47a1;
+        }
+        .chip .sector-dot {
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+        }
+        .chip .remove {
+            cursor: pointer; margin-left: 2px; font-size: 1rem; line-height: 1;
+            color: #999; font-weight: 400;
+        }
+        .chip .remove:hover { color: #0d47a1; }
+        .portfolio-info { font-size: 0.82rem; color: #888; margin-bottom: 14px; }
+
+        /* Cards */
+        .card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.07); padding: 16px;
+            margin-bottom: 14px;
+        }
+        .card-title {
+            font-size: 0.82rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        /* Stats grid */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; margin-bottom: 14px;
+        }
+        .stat {
+            background: white; border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.07);
+            padding: 12px 8px; text-align: center;
+        }
+        .stat .lbl {
+            font-size: 0.68rem; color: #999; text-transform: uppercase;
+            letter-spacing: .4px; margin-bottom: 2px;
+        }
+        .stat .val { font-size: 1.4rem; font-weight: 700; color: #0d47a1; }
+        .stat .sub { font-size: 0.67rem; color: #aaa; margin-top: 1px; }
+        .stat .val.green { color: #1a7a1a; }
+        .stat .val.red { color: #cc0000; }
+
+        /* Insight box */
+        .insight-box {
+            background: #fdf6f0; border: 1px solid #e8d5c4; border-left: 4px solid #0d47a1;
+            border-radius: 8px; padding: 14px 18px; margin-bottom: 14px;
+            font-size: 0.88rem; line-height: 1.6;
+        }
+        .insight-box b { color: #0d47a1; }
+
+        /* Heatmap container */
+        .heatmap-container { overflow-x: auto; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 40px; color: #999; font-size: 1rem;
+        }
+
+        /* Loading */
+        #loading {
+            text-align: center; padding: 20px; font-size: 0.9rem; color: #777; display: none;
+        }
+        .spin {
+            display: inline-block; width: 18px; height: 18px;
+            border: 3px solid #ddd; border-top-color: #0d47a1;
+            border-radius: 50%; animation: sp .7s linear infinite;
+            vertical-align: middle; margin-right: 6px;
+        }
+        @keyframes sp { to { transform: rotate(360deg); } }
+        #error-box {
+            background: #fff3f3; border: 1px solid #f5c6c6; color: #b00;
+            padding: 12px 16px; border-radius: 8px; margin-bottom: 14px;
+            display: none; font-size: 0.92rem;
+        }
+
+        .footer {
+            text-align: center; font-size: 0.7rem; color: #aaa;
+            padding: 12px 16px; line-height: 1.5;
+        }
+
+        @media (max-width: 700px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .stat .val { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🧩 Diversification Portfolio Builder</h1>
+    <p>MBA 6223 Finance &mdash; The Ohio State University</p>
+</div>
+
+<div class="container">
+    <div class="controls">
+        <div class="add-row">
+            <input type="text" id="ticker-input" placeholder="Add a stock (e.g., AAPL)"
+                   autocomplete="off" spellcheck="false"
+                   onkeydown="if(event.key==='Enter') addTicker()">
+            <button class="btn" onclick="addTicker()">Add</button>
+            <button class="btn secondary" onclick="clearAll()">Clear All</button>
+        </div>
+        <div class="scenarios">
+            <button class="btn secondary" onclick="loadScenario('tech')">5 Tech Stocks</button>
+            <button class="btn secondary" onclick="loadScenario('diverse')">5 Diverse Sectors</button>
+            <button class="btn secondary" onclick="loadScenario('random20')">Random 20 Stocks</button>
+            <button class="btn secondary" onclick="loadScenario('spy')">Just SPY</button>
+        </div>
+    </div>
+
+    <div id="error-box"></div>
+    <div id="loading"><span class="spin"></span> Loading data&hellip;</div>
+
+    <div class="portfolio-list" id="portfolio-list"></div>
+    <div class="portfolio-info" id="portfolio-info"></div>
+
+    <div id="results" style="display:none;">
+        <!-- Stats -->
+        <div class="stats-row" id="stats"></div>
+
+        <!-- Insight -->
+        <div class="insight-box" id="insight-box"></div>
+
+        <!-- Diversification curve -->
+        <div class="card"><div id="chart-divcurve"></div></div>
+
+        <!-- Growth of $1 -->
+        <div class="card"><div id="chart-growth"></div></div>
+
+        <!-- Return distribution histogram -->
+        <div class="card"><div id="chart-histogram"></div></div>
+
+        <!-- Correlation heatmap -->
+        <div class="card">
+            <div class="card-title">Pairwise Correlations</div>
+            <div class="heatmap-container"><div id="chart-heatmap"></div></div>
+        </div>
+    </div>
+
+    <div class="empty-state" id="empty-state">
+        Add stocks above to build a portfolio and see diversification in action.
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GLIDE PATH / LIFECYCLE SECTION                                -->
+    <!-- ============================================================ -->
+    <div style="border-top: 3px solid #0d47a1; margin-top: 28px; padding-top: 20px;">
+        <h2 style="font-size: 1.15rem; color: #0d47a1; margin-bottom: 14px;">
+            Life-Cycle Investing: The Glide Path
+        </h2>
+
+        <div class="card" style="margin-bottom: 14px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                <div style="flex:1; min-width: 180px;">
+                    <label style="font-size:.75rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px;">
+                        Your Age: <span id="age-label" style="color:#0d47a1; font-size:1.1rem;">30</span>
+                    </label>
+                    <input type="range" id="age-slider" min="22" max="75" value="30" step="1"
+                           style="width:100%; accent-color:#0d47a1;"
+                           oninput="updateGlidePath()">
+                </div>
+                <div style="flex:1; min-width: 180px;">
+                    <label style="font-size:.75rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px;">
+                        Glide Path Style
+                    </label>
+                    <select id="glide-style" onchange="updateGlidePath()"
+                            style="width:100%; padding:8px; font-size:.92rem; border:2px solid #ddd; border-radius:6px; outline:none;">
+                        <option value="aggressive">Aggressive (90% → 40% stocks)</option>
+                        <option value="moderate" selected>Moderate (80% → 30% stocks)</option>
+                        <option value="conservative">Conservative (70% → 20% stocks)</option>
+                        <option value="allstock">100% Stocks (no glide)</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width: 180px;">
+                    <label style="font-size:.75rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px;">
+                        Monthly Contribution: $<span id="contrib-label">500</span>
+                    </label>
+                    <input type="range" id="contrib-slider" min="100" max="2000" value="500" step="100"
+                           style="width:100%; accent-color:#0d47a1;"
+                           oninput="updateGlidePath()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Glide path allocation chart -->
+        <div class="card"><div id="chart-glide"></div></div>
+
+        <!-- Simulated wealth chart -->
+        <div class="card"><div id="chart-wealth"></div></div>
+
+        <!-- Glide path insight -->
+        <div class="insight-box" id="glide-insight"></div>
+    </div>
+</div>
+
+<div class="footer">
+    Data: Yahoo Finance &middot; 10 years of monthly total returns &middot; Equal-weighted portfolio<br>
+    Systematic risk floor (~18-20% volatility) cannot be diversified away. For educational use only.
+</div>
+
+<script>
+/* =================================================================== */
+const SCARLET = '#0d47a1';
+const SPY_COLOR = '#4472C4';
+const SECTOR_COLORS = {
+    Technology: '#e74c3c', Financials: '#3498db', Healthcare: '#2ecc71',
+    Energy: '#f39c12', Utilities: '#9b59b6', 'Consumer Staples': '#1abc9c',
+    'Consumer Discretionary': '#e67e22', Industrials: '#34495e',
+    'Real Estate': '#e91e63', Communications: '#00bcd4',
+    Materials: '#795548', ETF: '#607d8b',
+};
+
+let localData = null;
+let portfolio = []; // list of ticker strings
+
+/* Load data */
+(async function() {
+    document.getElementById('loading').style.display = 'block';
+    try {
+        const r = await fetch('portfolio_data.json');
+        if (r.ok) {
+            localData = await r.json();
+            console.log(`Loaded ${Object.keys(localData.tickers).length} tickers`);
+        }
+    } catch(e) { showError('Failed to load portfolio_data.json'); }
+    document.getElementById('loading').style.display = 'none';
+})();
+
+function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = msg; box.style.display = 'block';
+    setTimeout(() => box.style.display = 'none', 4000);
+}
+
+/* =================================================================== */
+/* PORTFOLIO MANAGEMENT                                                 */
+/* =================================================================== */
+function addTicker() {
+    const input = document.getElementById('ticker-input');
+    const t = input.value.trim().toUpperCase();
+    input.value = '';
+    if (!t) return;
+    if (!localData) { showError('Data not loaded yet'); return; }
+    if (!localData.tickers[t] && t !== 'SPY') {
+        showError(`${t} not found in data. Try one of: ${Object.keys(localData.tickers).slice(0,10).join(', ')}, SPY, ...`);
+        return;
+    }
+    if (portfolio.includes(t)) { showError(`${t} already in portfolio`); return; }
+    if (portfolio.length >= 30) { showError('Max 30 stocks'); return; }
+    portfolio.push(t);
+    updateUI();
+}
+
+function removeTicker(t) {
+    portfolio = portfolio.filter(x => x !== t);
+    updateUI();
+}
+
+function clearAll() {
+    portfolio = [];
+    updateUI();
+}
+
+function loadScenario(name) {
+    if (!localData) { showError('Data not loaded yet'); return; }
+    const tickers = Object.keys(localData.tickers);
+    switch(name) {
+        case 'tech':
+            portfolio = ['AAPL','MSFT','GOOGL','AMZN','NVDA'];
+            break;
+        case 'diverse':
+            portfolio = ['AAPL','JPM','JNJ','XOM','DUK'];
+            break;
+        case 'random20':
+            const shuffled = [...tickers].filter(t => localData.tickers[t].sector !== 'ETF')
+                .sort(() => Math.random() - 0.5);
+            portfolio = shuffled.slice(0, 20);
+            break;
+        case 'spy':
+            portfolio = ['SPY'];
+            break;
+    }
+    updateUI();
+}
+
+/* =================================================================== */
+/* RENDER PORTFOLIO CHIPS                                               */
+/* =================================================================== */
+function renderPortfolioList() {
+    const el = document.getElementById('portfolio-list');
+    el.innerHTML = portfolio.map(t => {
+        const info = localData.tickers[t];
+        const sector = info ? info.sector : 'Index';
+        const color = SECTOR_COLORS[sector] || '#888';
+        return `<div class="chip">
+            <span class="sector-dot" style="background:${color}"></span>
+            ${t}
+            <span class="remove" onclick="removeTicker('${t}')">&times;</span>
+        </div>`;
+    }).join('');
+
+    const infoEl = document.getElementById('portfolio-info');
+    if (portfolio.length > 0) {
+        const sectors = [...new Set(portfolio.map(t => localData.tickers[t]?.sector).filter(Boolean))];
+        infoEl.textContent = `${portfolio.length} stock${portfolio.length > 1 ? 's' : ''} \u00B7 ${sectors.length} sector${sectors.length > 1 ? 's' : ''} \u00B7 Equal weight: ${(100/portfolio.length).toFixed(1)}% each`;
+    } else {
+        infoEl.textContent = '';
+    }
+}
+
+/* =================================================================== */
+/* MATH                                                                 */
+/* =================================================================== */
+function getAlignedReturns(tickers) {
+    // Find common dates across all tickers + SPY
+    const spy = localData.spy;
+
+    const tickerReturns = {};
+    for (const t of tickers) {
+        // SPY can be used as a portfolio holding
+        const d = t === 'SPY' ? spy : localData.tickers[t];
+        if (!d) continue;
+        tickerReturns[t] = {};
+        d.dates.forEach((dt, i) => tickerReturns[t][dt] = d.returns[i]);
+    }
+
+    // Find dates present in ALL tickers and SPY benchmark
+    const commonDates = spy.dates.filter(dt => {
+        return tickers.every(t => tickerReturns[t] && tickerReturns[t][dt] !== undefined);
+    });
+
+    const spyMap = {};
+    spy.dates.forEach((d,i) => spyMap[d] = spy.returns[i]);
+
+    return {
+        dates: commonDates,
+        spy: commonDates.map(d => spyMap[d]),
+        stocks: Object.fromEntries(tickers.map(t =>
+            [t, commonDates.map(d => tickerReturns[t][d])]
+        )),
+    };
+}
+
+function portfolioReturns(aligned, tickers) {
+    // Equal-weighted monthly returns
+    const n = aligned.dates.length;
+    const portRet = new Array(n).fill(0);
+    for (const t of tickers) {
+        const ret = aligned.stocks[t];
+        for (let i = 0; i < n; i++) portRet[i] += ret[i] / tickers.length;
+    }
+    return portRet;
+}
+
+function annualizedReturn(returns) {
+    let cum = 1;
+    for (const r of returns) cum *= (1 + r / 100);
+    return (Math.pow(cum, 1 / (returns.length / 12)) - 1) * 100;
+}
+
+function annualizedVol(returns) {
+    const n = returns.length;
+    const mean = returns.reduce((a,b) => a+b, 0) / n;
+    const variance = returns.reduce((a,r) => a + (r-mean)**2, 0) / (n-1);
+    return Math.sqrt(variance * 12);
+}
+
+function maxDrawdown(returns) {
+    let cum = 1, peak = 1, worst = 0;
+    for (const r of returns) {
+        cum *= (1 + r / 100);
+        peak = Math.max(peak, cum);
+        worst = Math.min(worst, (cum / peak - 1) * 100);
+    }
+    return worst;
+}
+
+function cumulativeGrowth(returns) {
+    const g = [1.0];
+    for (const r of returns) g.push(g[g.length - 1] * (1 + r / 100));
+    return g;
+}
+
+function getCorrelation(t1, t2) {
+    const key1 = `${t1},${t2}`;
+    const key2 = `${t2},${t1}`;
+    if (localData.correlations[key1] !== undefined) return localData.correlations[key1];
+    if (localData.correlations[key2] !== undefined) return localData.correlations[key2];
+    if (t1 === t2) return 1.0;
+    return null;
+}
+
+/* =================================================================== */
+/* DIVERSIFICATION CURVE                                                */
+/* =================================================================== */
+function computeDivCurve(aligned, tickers) {
+    // Incrementally add stocks and compute portfolio vol
+    const points = [];
+    for (let k = 1; k <= tickers.length; k++) {
+        const subset = tickers.slice(0, k);
+        const portRet = portfolioReturns(aligned, subset);
+        const vol = annualizedVol(portRet);
+        points.push({ n: k, vol, label: subset[subset.length - 1] });
+    }
+    return points;
+}
+
+/* =================================================================== */
+/* PLOTTING                                                             */
+/* =================================================================== */
+const plotCfg = { responsive: true, displayModeBar: false };
+
+function plotDivCurve(points, spyVol) {
+    const trace = {
+        x: points.map(p => p.n),
+        y: points.map(p => p.vol),
+        mode: 'lines+markers',
+        line: { color: SCARLET, width: 3 },
+        marker: { size: 8, color: SCARLET },
+        name: 'Portfolio volatility',
+        text: points.map(p => `+${p.label}`),
+        hovertemplate: '%{text}<br>%{x} stocks: %{y:.1f}% vol<extra></extra>',
+    };
+
+    const spyLine = {
+        x: [1, points.length],
+        y: [spyVol, spyVol],
+        mode: 'lines', name: 'S&P 500 vol',
+        line: { color: SPY_COLOR, width: 2, dash: 'dash' },
+    };
+
+    // Systematic risk floor line (~18%)
+    const floorLine = {
+        x: [1, Math.max(points.length, 20)],
+        y: [18, 18],
+        mode: 'lines', name: 'Systematic risk floor (~18%)',
+        line: { color: '#999', width: 1.5, dash: 'dot' },
+    };
+
+    // Avg individual stock vol
+    const avgIndVol = points.length > 0 ? points.reduce((a,p) => a + p.vol, 0) / points.length : 0;
+
+    const layout = {
+        title: { text: 'Diversification Curve', font: { size: 15, color: '#333' } },
+        xaxis: { title: 'Number of Stocks', gridcolor: '#eee', dtick: points.length > 20 ? 5 : 1 },
+        yaxis: { title: 'Portfolio Volatility (% annualized)', gridcolor: '#eee',
+                 rangemode: 'tozero' },
+        showlegend: true,
+        legend: { x: .5, y: .98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
+        margin: { l: 56, r: 24, t: 48, b: 52 },
+        plot_bgcolor: '#fafafa', paper_bgcolor: 'white',
+    };
+
+    Plotly.newPlot('chart-divcurve', [trace, spyLine, floorLine], layout, plotCfg);
+}
+
+function plotGrowth(aligned, tickers, portRet) {
+    const gd = ['Start', ...aligned.dates];
+    const traces = [];
+
+    // Individual stocks (faded spaghetti)
+    for (const t of tickers) {
+        const g = cumulativeGrowth(aligned.stocks[t]);
+        traces.push({
+            x: gd, y: g, mode: 'lines', name: t,
+            line: { width: 1, color: 'rgba(150,150,150,0.3)' },
+            showlegend: false,
+            hovertemplate: `${t}: $%{y:.2f}<extra></extra>`,
+        });
+    }
+
+    // Portfolio (bold)
+    const portGrowth = cumulativeGrowth(portRet);
+    traces.push({
+        x: gd, y: portGrowth, mode: 'lines', name: `Portfolio (${tickers.length} stocks)`,
+        line: { color: SCARLET, width: 3 },
+        hovertemplate: 'Portfolio: $%{y:.2f}<extra></extra>',
+    });
+
+    // SPY
+    const spyGrowth = cumulativeGrowth(aligned.spy);
+    traces.push({
+        x: gd, y: spyGrowth, mode: 'lines', name: 'S&P 500',
+        line: { color: SPY_COLOR, width: 2.5, dash: 'dot' },
+        hovertemplate: 'SPY: $%{y:.2f}<extra></extra>',
+    });
+
+    const layout = {
+        title: { text: 'Growth of $1', font: { size: 15, color: '#333' } },
+        xaxis: { gridcolor: '#eee', tickangle: -45, tickfont: { size: 10 } },
+        yaxis: { title: 'Value ($)', gridcolor: '#eee' },
+        showlegend: true,
+        legend: { x: .02, y: .98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
+        margin: { l: 56, r: 24, t: 48, b: 60 },
+        plot_bgcolor: '#fafafa', paper_bgcolor: 'white',
+        shapes: [{
+            type: 'line', x0: gd[0], x1: gd[gd.length - 1],
+            y0: 1, y1: 1, line: { color: '#aaa', width: 1, dash: 'dash' },
+        }],
+    };
+    Plotly.newPlot('chart-growth', traces, layout, plotCfg);
+}
+
+function plotHeatmap(tickers) {
+    if (tickers.length < 2) {
+        Plotly.newPlot('chart-heatmap', [], { height: 100, margin: { l: 20, r: 20, t: 20, b: 20 } }, plotCfg);
+        return;
+    }
+    const n = tickers.length;
+    const z = [];
+    for (let i = 0; i < n; i++) {
+        const row = [];
+        for (let j = 0; j < n; j++) {
+            row.push(getCorrelation(tickers[i], tickers[j]));
+        }
+        z.push(row);
+    }
+
+    const trace = {
+        z, x: tickers, y: tickers, type: 'heatmap',
+        colorscale: [
+            [0, '#2166ac'], [0.25, '#67a9cf'], [0.5, '#f7f7f7'],
+            [0.75, '#ef8a62'], [1, '#b2182b']
+        ],
+        zmin: -1, zmax: 1,
+        hovertemplate: '%{x} vs %{y}: %{z:.2f}<extra></extra>',
+        colorbar: { title: 'Corr', titleside: 'right', thickness: 15 },
+    };
+
+    const size = Math.max(300, Math.min(500, n * 35));
+    const layout = {
+        width: size + 100, height: size + 60,
+        margin: { l: 60, r: 60, t: 10, b: 60 },
+        xaxis: { tickangle: -45, tickfont: { size: Math.max(8, 12 - n * 0.2) } },
+        yaxis: { tickfont: { size: Math.max(8, 12 - n * 0.2) }, autorange: 'reversed' },
+    };
+    Plotly.newPlot('chart-heatmap', [trace], layout, plotCfg);
+}
+
+/* =================================================================== */
+/* RETURN DISTRIBUTION HISTOGRAM                                        */
+/* =================================================================== */
+function plotHistogram(portRet, spyRet, tickers) {
+    const allVals = [...portRet, ...spyRet];
+    const lo = Math.floor(Math.min(...allVals)) - 1;
+    const hi = Math.ceil(Math.max(...allVals)) + 1;
+
+    const portLabel = tickers.length === 1 ? tickers[0] : `Portfolio (${tickers.length})`;
+    const portTrace = {
+        x: portRet, type: 'histogram', name: portLabel,
+        marker: { color: 'rgba(187,0,0,0.5)', line: { color: SCARLET, width: 1 } },
+        xbins: { start: lo, end: hi, size: 1 },
+        hovertemplate: portLabel + '<br>%{x:.0f}% bin: %{y} months<extra></extra>',
+    };
+    const spyTrace = {
+        x: spyRet, type: 'histogram', name: 'S&P 500',
+        marker: { color: 'rgba(68,114,196,0.35)', line: { color: SPY_COLOR, width: 1 } },
+        xbins: { start: lo, end: hi, size: 1 },
+        hovertemplate: 'SPY<br>%{x:.0f}% bin: %{y} months<extra></extra>',
+    };
+
+    const portMean = portRet.reduce((a,b) => a+b, 0) / portRet.length;
+    const spyMean = spyRet.reduce((a,b) => a+b, 0) / spyRet.length;
+
+    const layout = {
+        title: { text: 'Distribution of Monthly Returns (1% bins)', font: { size: 15, color: '#333' } },
+        xaxis: { title: 'Monthly Return (%)', gridcolor: '#eee' },
+        yaxis: { title: 'Number of Months', gridcolor: '#eee' },
+        barmode: 'overlay',
+        showlegend: true,
+        legend: { x: .02, y: .98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
+        margin: { l: 50, r: 24, t: 48, b: 52 },
+        plot_bgcolor: '#fafafa', paper_bgcolor: 'white',
+        shapes: [
+            { type: 'line', x0: portMean, x1: portMean, y0: 0, y1: 1, yref: 'paper',
+              line: { color: SCARLET, width: 2, dash: 'dash' } },
+            { type: 'line', x0: spyMean, x1: spyMean, y0: 0, y1: 1, yref: 'paper',
+              line: { color: SPY_COLOR, width: 2, dash: 'dash' } },
+        ],
+        annotations: [
+            { x: portMean, y: 1.02, yref: 'paper',
+              text: `${portLabel} avg: ${portMean.toFixed(1)}%`,
+              showarrow: false, font: { size: 10, color: SCARLET },
+              xanchor: portMean > spyMean ? 'left' : 'right' },
+            { x: spyMean, y: 1.06, yref: 'paper',
+              text: `SPY avg: ${spyMean.toFixed(1)}%`,
+              showarrow: false, font: { size: 10, color: SPY_COLOR },
+              xanchor: spyMean > portMean ? 'left' : 'right' },
+        ],
+    };
+    Plotly.newPlot('chart-histogram', [portTrace, spyTrace], layout, plotCfg);
+}
+
+/* =================================================================== */
+/* STATS & INSIGHT                                                      */
+/* =================================================================== */
+function showStats(portRet, spyRet, aligned, tickers) {
+    const portAnnRet = annualizedReturn(portRet);
+    const spyAnnRet = annualizedReturn(spyRet);
+    const portVol = annualizedVol(portRet);
+    const spyVol = annualizedVol(spyRet);
+    const rf = 4.5;
+    const portSharpe = portVol > 0 ? (portAnnRet - rf) / portVol : 0;
+    const spySharpe = spyVol > 0 ? (spyAnnRet - rf) / spyVol : 0;
+    const portDD = maxDrawdown(portRet);
+    const spyDD = maxDrawdown(spyRet);
+
+    // Avg individual stock stats
+    let avgVol = 0, avgDD = 0;
+    for (const t of tickers) {
+        avgVol += annualizedVol(aligned.stocks[t]);
+        avgDD += maxDrawdown(aligned.stocks[t]);
+    }
+    avgVol /= tickers.length;
+    avgDD /= tickers.length;
+
+    const fmtPct = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+    const absP = (v) => `${v.toFixed(1)}%`;
+
+    document.getElementById('stats').innerHTML = `
+        <div class="stat">
+            <div class="lbl">Portfolio Return</div>
+            <div class="val ${portAnnRet >= spyAnnRet ? 'green' : 'red'}">${fmtPct(portAnnRet)}</div>
+            <div class="sub">SPY: ${fmtPct(spyAnnRet)}</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Portfolio Vol</div>
+            <div class="val">${absP(portVol)}</div>
+            <div class="sub">Avg stock: ${absP(avgVol)}</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Sharpe Ratio</div>
+            <div class="val">${portSharpe.toFixed(2)}</div>
+            <div class="sub">SPY: ${spySharpe.toFixed(2)}</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Max Drawdown</div>
+            <div class="val ${Math.abs(portDD) <= Math.abs(spyDD) ? 'green' : 'red'}">${portDD.toFixed(1)}%</div>
+            <div class="sub">Avg stock: ${avgDD.toFixed(1)}%</div>
+        </div>
+    `;
+
+    return { portVol, avgVol, portDD, avgDD, portAnnRet, spyAnnRet };
+}
+
+function showInsight(stats, tickers) {
+    const { portVol, avgVol, portDD, avgDD } = stats;
+    const volReduction = ((1 - portVol / avgVol) * 100).toFixed(0);
+    const ddImprove = (Math.abs(avgDD) - Math.abs(portDD)).toFixed(1);
+
+    let msg = '';
+    if (tickers.length === 1) {
+        msg = `With just <b>1 stock</b>, you have no diversification. All your risk is concentrated in <b>${tickers[0]}</b>. Try adding stocks from different sectors.`;
+    } else if (tickers.length <= 3) {
+        msg = `<b>${tickers.length} stocks</b> reduced volatility by <b>${volReduction}%</b> vs the average individual stock. ` +
+              `Adding more stocks (especially from different sectors) will reduce risk further.`;
+    } else if (tickers.length <= 10) {
+        msg = `<b>${tickers.length} stocks</b> cut volatility by <b>${volReduction}%</b> vs the average individual stock. ` +
+              `Max drawdown improved by <b>${ddImprove}pp</b>. You're getting solid diversification, but there's still room to reduce firm-specific risk.`;
+    } else {
+        msg = `With <b>${tickers.length} stocks</b>, volatility is <b>${volReduction}%</b> lower than the average individual stock. ` +
+              `You're approaching the systematic risk floor (~18-20%). Further diversification has <b>diminishing returns</b> &mdash; ` +
+              `the remaining risk is market-wide and can't be diversified away.`;
+    }
+
+    // Check if portfolio is sector-concentrated
+    const sectors = tickers.map(t => localData.tickers[t]?.sector).filter(Boolean);
+    const sectorCounts = {};
+    sectors.forEach(s => sectorCounts[s] = (sectorCounts[s] || 0) + 1);
+    const topSector = Object.entries(sectorCounts).sort((a,b) => b[1] - a[1])[0];
+    if (topSector && topSector[1] / tickers.length > 0.6 && tickers.length >= 3) {
+        msg += `<br><br><b>Sector concentration:</b> ${Math.round(topSector[1] / tickers.length * 100)}% of your portfolio is in ${topSector[0]}. ` +
+               `Stocks within the same sector tend to be highly correlated, reducing the diversification benefit.`;
+    }
+
+    document.getElementById('insight-box').innerHTML = msg;
+}
+
+/* =================================================================== */
+/* MAIN UPDATE                                                          */
+/* =================================================================== */
+function updateUI() {
+    renderPortfolioList();
+    const resultsEl = document.getElementById('results');
+    const emptyEl = document.getElementById('empty-state');
+
+    if (portfolio.length === 0) {
+        resultsEl.style.display = 'none';
+        emptyEl.style.display = 'block';
+        return;
+    }
+
+    emptyEl.style.display = 'none';
+    resultsEl.style.display = 'block';
+
+    const aligned = getAlignedReturns(portfolio);
+    if (aligned.dates.length < 12) {
+        showError('Not enough overlapping data (need 12+ months)');
+        return;
+    }
+
+    const portRet = portfolioReturns(aligned, portfolio);
+    const divCurve = computeDivCurve(aligned, portfolio);
+    const spyVol = annualizedVol(aligned.spy);
+
+    plotDivCurve(divCurve, spyVol);
+    plotGrowth(aligned, portfolio, portRet);
+    plotHistogram(portRet, aligned.spy, portfolio);
+    plotHeatmap(portfolio);
+    const stats = showStats(portRet, aligned.spy, aligned, portfolio);
+    showInsight(stats, portfolio);
+}
+
+/* =================================================================== */
+/* GLIDE PATH / LIFECYCLE INVESTING                                     */
+/* =================================================================== */
+
+const GLIDE_STYLES = {
+    aggressive:   { startStock: 90, endStock: 40, label: 'Aggressive' },
+    moderate:     { startStock: 80, endStock: 30, label: 'Moderate' },
+    conservative: { startStock: 70, endStock: 20, label: 'Conservative' },
+    allstock:     { startStock: 100, endStock: 100, label: '100% Stocks' },
+};
+
+// Historical annual real returns (nominal - inflation) for simulation
+// Large stocks ~10% nominal, bonds ~5% nominal, inflation ~3%
+const HIST_STOCK_RETURN = 0.10;  // 10% nominal annual
+const HIST_BOND_RETURN  = 0.05;  // 5% nominal annual
+const HIST_STOCK_VOL    = 0.20;  // 20% annual volatility
+const HIST_BOND_VOL     = 0.10;  // 10% annual volatility
+const HIST_CORR         = 0.05;  // low stock-bond correlation
+
+function getStockPct(age, style) {
+    const { startStock, endStock } = GLIDE_STYLES[style];
+    if (style === 'allstock') return 100;
+    // Linear glide from age 22 to age 67 (retirement), then flat
+    const startAge = 22, retireAge = 67;
+    if (age <= startAge) return startStock;
+    if (age >= retireAge) return endStock;
+    const frac = (age - startAge) / (retireAge - startAge);
+    return Math.round(startStock - frac * (startStock - endStock));
+}
+
+function simulateWealth(startAge, style, monthlyContrib) {
+    const retireAge = 67;
+    const months = Math.max(0, (retireAge - startAge)) * 12;
+    if (months === 0) return { ages: [startAge], wealth: [0], median: [0], lower: [0], upper: [0] };
+
+    // Run multiple simulation paths using simple random walk
+    const nSims = 500;
+    const paths = [];
+    // Seed the random number generator with a consistent approach
+    function boxMuller() {
+        let u1 = Math.random(), u2 = Math.random();
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    }
+
+    for (let s = 0; s < nSims; s++) {
+        let wealth = 0;
+        const path = [0];
+        for (let m = 0; m < months; m++) {
+            const age = startAge + m / 12;
+            const stockPct = getStockPct(Math.floor(age), style) / 100;
+            const bondPct = 1 - stockPct;
+
+            // Monthly returns (annual / 12 for mean, annual / sqrt(12) for vol)
+            const stockR = HIST_STOCK_RETURN / 12 + (HIST_STOCK_VOL / Math.sqrt(12)) * boxMuller();
+            const bondR = HIST_BOND_RETURN / 12 + (HIST_BOND_VOL / Math.sqrt(12)) * boxMuller();
+            const portR = stockPct * stockR + bondPct * bondR;
+
+            wealth = (wealth + monthlyContrib) * (1 + portR);
+            if ((m + 1) % 12 === 0) path.push(wealth);
+        }
+        // Catch any remaining partial year
+        if (months % 12 !== 0) path.push(wealth);
+        paths.push(path);
+    }
+
+    const nYears = Math.ceil(months / 12);
+    const ages = [];
+    for (let i = 0; i <= nYears; i++) ages.push(startAge + i);
+
+    // Compute percentiles at each year
+    const median = [], lower = [], upper = [];
+    for (let i = 0; i <= nYears; i++) {
+        const vals = paths.map(p => p[Math.min(i, p.length - 1)]).sort((a, b) => a - b);
+        lower.push(vals[Math.floor(nSims * 0.10)]);
+        median.push(vals[Math.floor(nSims * 0.50)]);
+        upper.push(vals[Math.floor(nSims * 0.90)]);
+    }
+
+    return { ages, median, lower, upper };
+}
+
+function updateGlidePath() {
+    const age = parseInt(document.getElementById('age-slider').value);
+    const style = document.getElementById('glide-style').value;
+    const contrib = parseInt(document.getElementById('contrib-slider').value);
+
+    document.getElementById('age-label').textContent = age;
+    document.getElementById('contrib-label').textContent = contrib.toLocaleString();
+
+    // 1. Plot allocation glide path
+    const ages = [];
+    const stockPcts = [];
+    const bondPcts = [];
+    for (let a = 22; a <= 75; a++) {
+        ages.push(a);
+        const sp = getStockPct(a, style);
+        stockPcts.push(sp);
+        bondPcts.push(100 - sp);
+    }
+
+    const stockTrace = {
+        x: ages, y: stockPcts, name: 'Stocks',
+        fill: 'tozeroy', fillcolor: 'rgba(13,71,161,0.3)',
+        line: { color: '#0d47a1', width: 2.5 },
+        mode: 'lines',
+        hovertemplate: 'Age %{x}: %{y}% stocks<extra></extra>',
+    };
+    const bondTrace = {
+        x: ages, y: bondPcts, name: 'Bonds',
+        fill: 'tozeroy', fillcolor: 'rgba(76,175,80,0.2)',
+        line: { color: '#4CAF50', width: 2.5 },
+        mode: 'lines',
+        hovertemplate: 'Age %{x}: %{y}% bonds<extra></extra>',
+    };
+
+    // Marker for current age
+    const curStock = getStockPct(age, style);
+    const ageMarker = {
+        x: [age], y: [curStock], mode: 'markers+text',
+        marker: { size: 14, color: '#0d47a1', line: { color: 'white', width: 2 } },
+        text: [`You: ${curStock}% stocks`], textposition: 'top center',
+        textfont: { size: 11, color: '#0d47a1', weight: 'bold' },
+        showlegend: false,
+        hovertemplate: `Age ${age}: ${curStock}% stocks, ${100 - curStock}% bonds<extra></extra>`,
+    };
+
+    const glideLayout = {
+        title: { text: `Target Allocation by Age (${GLIDE_STYLES[style].label})`, font: { size: 15, color: '#333' } },
+        xaxis: { title: 'Age', gridcolor: '#eee', range: [22, 75] },
+        yaxis: { title: 'Allocation (%)', gridcolor: '#eee', range: [0, 105] },
+        showlegend: true,
+        legend: { x: 0.7, y: 0.98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
+        margin: { l: 50, r: 24, t: 48, b: 52 },
+        plot_bgcolor: '#fafafa', paper_bgcolor: 'white',
+        shapes: [{
+            type: 'line', x0: 67, x1: 67, y0: 0, y1: 105,
+            line: { color: '#999', width: 1.5, dash: 'dot' },
+        }],
+        annotations: [{
+            x: 67, y: 105, text: 'Retirement (67)', showarrow: false,
+            font: { size: 10, color: '#999' }, xanchor: 'right',
+        }],
+    };
+    Plotly.newPlot('chart-glide', [stockTrace, bondTrace, ageMarker], glideLayout, plotCfg);
+
+    // 2. Simulate wealth accumulation
+    const sim = simulateWealth(age, style, contrib);
+
+    const medianTrace = {
+        x: sim.ages, y: sim.median, name: 'Median outcome',
+        line: { color: '#0d47a1', width: 3 }, mode: 'lines',
+        hovertemplate: 'Age %{x}<br>Median: $%{y:,.0f}<extra></extra>',
+    };
+    const bandTrace = {
+        x: [...sim.ages, ...sim.ages.slice().reverse()],
+        y: [...sim.upper, ...sim.lower.slice().reverse()],
+        fill: 'toself', fillcolor: 'rgba(13,71,161,0.12)',
+        line: { color: 'transparent' }, name: '10th-90th percentile',
+        showlegend: true, hoverinfo: 'skip',
+    };
+    const upperTrace = {
+        x: sim.ages, y: sim.upper, name: 'Optimistic (90th)',
+        line: { color: 'rgba(13,71,161,0.3)', width: 1, dash: 'dot' },
+        mode: 'lines', showlegend: false,
+        hovertemplate: 'Age %{x}<br>90th pct: $%{y:,.0f}<extra></extra>',
+    };
+    const lowerTrace = {
+        x: sim.ages, y: sim.lower, name: 'Pessimistic (10th)',
+        line: { color: 'rgba(13,71,161,0.3)', width: 1, dash: 'dot' },
+        mode: 'lines', showlegend: false,
+        hovertemplate: 'Age %{x}<br>10th pct: $%{y:,.0f}<extra></extra>',
+    };
+
+    // Also simulate 100% stocks and 100% bonds for comparison
+    const simAllStock = simulateWealth(age, 'allstock', contrib);
+    const allStockTrace = {
+        x: simAllStock.ages, y: simAllStock.median, name: '100% Stocks (median)',
+        line: { color: '#e74c3c', width: 1.5, dash: 'dash' }, mode: 'lines',
+        hovertemplate: 'Age %{x}<br>100% stocks: $%{y:,.0f}<extra></extra>',
+    };
+
+    // Total contributions line
+    const contribLine = {
+        x: sim.ages, y: sim.ages.map((a, i) => i * 12 * contrib),
+        name: 'Total contributions', mode: 'lines',
+        line: { color: '#999', width: 1.5, dash: 'dash' },
+        hovertemplate: 'Age %{x}<br>Contributed: $%{y:,.0f}<extra></extra>',
+    };
+
+    const wealthLayout = {
+        title: { text: 'Simulated Wealth at Retirement (500 paths)', font: { size: 15, color: '#333' } },
+        xaxis: { title: 'Age', gridcolor: '#eee' },
+        yaxis: { title: 'Portfolio Value ($)', gridcolor: '#eee', rangemode: 'tozero',
+                 tickformat: ',.0f', tickprefix: '$' },
+        showlegend: true,
+        legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
+        margin: { l: 72, r: 24, t: 48, b: 52 },
+        plot_bgcolor: '#fafafa', paper_bgcolor: 'white',
+    };
+
+    const wealthTraces = style === 'allstock'
+        ? [bandTrace, lowerTrace, upperTrace, medianTrace, contribLine]
+        : [bandTrace, lowerTrace, upperTrace, medianTrace, allStockTrace, contribLine];
+
+    Plotly.newPlot('chart-wealth', wealthTraces, wealthLayout, plotCfg);
+
+    // 3. Insight text
+    const yearsToRetire = Math.max(0, 67 - age);
+    const totalContrib = yearsToRetire * 12 * contrib;
+    const medianFinal = sim.median[sim.median.length - 1];
+    const gain = medianFinal - totalContrib;
+
+    let insight = '';
+    if (age < 35) {
+        insight = `At age <b>${age}</b>, your greatest asset is <b>human capital</b> &mdash; decades of future salary that acts like a bond ` +
+            `(stable, predictable income). Because your "hidden bond" is so large, your <i>financial</i> portfolio should tilt toward <b>stocks</b> ` +
+            `(currently <b>${curStock}%</b>). With <b>${yearsToRetire} years</b> to retirement, you can weather short-term volatility. ` +
+            `Saving <b>$${contrib.toLocaleString()}/mo</b> and earning market returns, your median outcome is <b>$${Math.round(medianFinal).toLocaleString()}</b> ` +
+            `(you contributed $${totalContrib.toLocaleString()}, so ~$${Math.round(gain).toLocaleString()} is investment growth).`;
+    } else if (age < 50) {
+        insight = `At age <b>${age}</b>, you've built career earnings but your remaining human capital is shrinking. ` +
+            `The glide path shifts you to <b>${curStock}% stocks / ${100 - curStock}% bonds</b>. ` +
+            `With <b>${yearsToRetire} years</b> left, there's still time for compounding &mdash; ` +
+            `your median wealth at 67 is <b>$${Math.round(medianFinal).toLocaleString()}</b>. ` +
+            `But notice the range: the 10th percentile is <b>$${Math.round(sim.lower[sim.lower.length - 1]).toLocaleString()}</b> ` +
+            `and the 90th is <b>$${Math.round(sim.upper[sim.upper.length - 1]).toLocaleString()}</b>. Risk matters more now.`;
+    } else if (age < 67) {
+        insight = `At age <b>${age}</b>, retirement is only <b>${yearsToRetire} years</b> away. ` +
+            `Your human capital is nearly depleted, so the glide path emphasizes <b>capital preservation</b>: ` +
+            `<b>${curStock}% stocks / ${100 - curStock}% bonds</b>. A major crash now would be devastating with little time to recover. ` +
+            `Median wealth: <b>$${Math.round(medianFinal).toLocaleString()}</b>. ` +
+            `The 10th-90th range is tighter because bonds reduce volatility.`;
+    } else {
+        insight = `At age <b>${age}</b>, you're at or past retirement. The portfolio is at <b>${curStock}% stocks / ${100 - curStock}% bonds</b>. ` +
+            `The focus shifts from growth to <b>income and preservation</b>. ` +
+            `You're drawing down rather than accumulating &mdash; volatility now directly threatens your spending power.`;
+    }
+
+    if (style === 'allstock') {
+        insight += `<br><br><b>Note:</b> With 100% stocks and no glide, expected returns are higher but so is risk. ` +
+            `A 2008-style crash near retirement could cut your portfolio in half with no time to recover.`;
+    }
+
+    document.getElementById('glide-insight').innerHTML = insight;
+}
+
+// Initialize glide path on load
+document.addEventListener('DOMContentLoaded', () => setTimeout(updateGlidePath, 300));
+</script>
+</body>
+</html>
