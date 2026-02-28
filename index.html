@@ -238,7 +238,13 @@
         <div class="card"><div id="chart-glide"></div></div>
 
         <!-- Simulated wealth chart -->
-        <div class="card"><div id="chart-wealth"></div></div>
+        <div class="card">
+            <div style="text-align: right; padding: 6px 12px 0 0;">
+                <span style="font-size: 0.8rem; color: #666; margin-right: 6px;">Y-axis:</span>
+                <button id="btn-linear" onclick="setWealthScale('linear')" style="padding: 3px 10px; font-size: 0.75rem; border: 1px solid #0d47a1; border-radius: 4px 0 0 4px; background: #0d47a1; color: white; cursor: pointer;">Linear</button><button id="btn-log" onclick="setWealthScale('log')" style="padding: 3px 10px; font-size: 0.75rem; border: 1px solid #0d47a1; border-radius: 0 4px 4px 0; background: white; color: #0d47a1; cursor: pointer;">Log</button>
+            </div>
+            <div id="chart-wealth"></div>
+        </div>
 
         <!-- Glide path insight -->
         <div class="insight-box" id="glide-insight"></div>
@@ -844,6 +850,18 @@ function simulateWealth(startAge, style, monthlyContrib) {
     return { ages, median, lower, upper };
 }
 
+function setWealthScale(type) {
+    const isLog = type === 'log';
+    Plotly.relayout('chart-wealth', {
+        'yaxis.type': isLog ? 'log' : 'linear',
+        'yaxis.rangemode': isLog ? 'normal' : 'tozero',
+    });
+    document.getElementById('btn-linear').style.background = isLog ? 'white' : '#0d47a1';
+    document.getElementById('btn-linear').style.color = isLog ? '#0d47a1' : 'white';
+    document.getElementById('btn-log').style.background = isLog ? '#0d47a1' : 'white';
+    document.getElementById('btn-log').style.color = isLog ? 'white' : '#0d47a1';
+}
+
 function updateGlidePath() {
     const age = parseInt(document.getElementById('age-slider').value);
     const style = document.getElementById('glide-style').value;
@@ -969,6 +987,12 @@ function updateGlidePath() {
         : [bandTrace, lowerTrace, upperTrace, medianTrace, allStockTrace, contribLine];
 
     Plotly.newPlot('chart-wealth', wealthTraces, wealthLayout, plotCfg);
+
+    // Reset scale toggle to linear on each update
+    document.getElementById('btn-linear').style.background = '#0d47a1';
+    document.getElementById('btn-linear').style.color = 'white';
+    document.getElementById('btn-log').style.background = 'white';
+    document.getElementById('btn-log').style.color = '#0d47a1';
 
     // 3. Insight text
     const yearsToRetire = Math.max(0, 67 - age);
