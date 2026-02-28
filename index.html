@@ -865,17 +865,18 @@ function updateGlidePath() {
 
     const stockTrace = {
         x: ages, y: stockPcts, name: 'Stocks',
-        fill: 'tozeroy', fillcolor: 'rgba(13,71,161,0.3)',
-        line: { color: '#0d47a1', width: 2.5 },
+        fill: 'tozeroy', fillcolor: 'rgba(187,0,0,0.3)',
+        line: { color: '#bb0000', width: 2.5 },
         mode: 'lines',
         hovertemplate: 'Age %{x}: %{y}% stocks<extra></extra>',
     };
     const bondTrace = {
-        x: ages, y: bondPcts, name: 'Bonds',
-        fill: 'tozeroy', fillcolor: 'rgba(76,175,80,0.2)',
+        x: ages, y: ages.map(() => 100), name: 'Bonds',
+        fill: 'tonexty', fillcolor: 'rgba(76,175,80,0.2)',
         line: { color: '#4CAF50', width: 2.5 },
         mode: 'lines',
-        hovertemplate: 'Age %{x}: %{y}% bonds<extra></extra>',
+        hovertemplate: 'Age %{x}: %{customdata}% bonds<extra></extra>',
+        customdata: bondPcts,
     };
 
     // Marker for current age
@@ -892,7 +893,7 @@ function updateGlidePath() {
     const glideLayout = {
         title: { text: `Target Allocation by Age (${GLIDE_STYLES[style].label})`, font: { size: 15, color: '#333' } },
         xaxis: { title: 'Age', gridcolor: '#eee', range: [22, 75] },
-        yaxis: { title: 'Allocation (%)', gridcolor: '#eee', range: [0, 105] },
+        yaxis: { title: 'Allocation (%)', gridcolor: '#eee', range: [0, 100] },
         showlegend: true,
         legend: { x: 0.7, y: 0.98, bgcolor: 'rgba(255,255,255,.85)', bordercolor: '#ddd', borderwidth: 1 },
         margin: { l: 50, r: 24, t: 48, b: 52 },
@@ -902,7 +903,7 @@ function updateGlidePath() {
             line: { color: '#999', width: 1.5, dash: 'dot' },
         }],
         annotations: [{
-            x: 67, y: 105, text: 'Retirement (67)', showarrow: false,
+            x: 67, y: 100, text: 'Retirement (67)', showarrow: false,
             font: { size: 10, color: '#999' }, xanchor: 'right',
         }],
     };
